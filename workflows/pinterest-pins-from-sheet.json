@@ -1,0 +1,141 @@
+{
+  "name": "Pinterest pins from Google Sheet",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Pinterest x Google Sheet\n\n1. **Google Sheets**: connect credentials and choose the spreadsheet + worksheet (or switch Document to **By ID** and paste the spreadsheet ID).\n2. **Pinterest**: set `PINTEREST_ACCESS_TOKEN` in your runtime environment (for example, Docker `.env`).\n3. **Production**: set `PINTEREST_API_BASE` to `https://api.pinterest.com` and use a production token.\n4. Header row should be: `board_id`, `title`, `description`, `alt`, `link`, `image_url`.\n5. If you do not need scheduled runs, disconnect **Schedule** from **Pin data**.",
+        "height": 428,
+        "width": 520,
+        "color": 4
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "README (sticky)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-720, -120]
+    },
+    {
+      "parameters": {},
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-380, 80]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Daily schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-380, 280]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0123-def0-234567890123",
+      "name": "Pin data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [-80, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.PINTEREST_API_BASE || 'https://api-sandbox.pinterest.com') + '/v5/pins' }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.PINTEREST_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const j = $json; const body = { board_id: String(j.board_id ?? '').trim(), title: j.title ?? '', description: j.description ?? '', alt_text: j.alt ?? '', media_source: { source_type: 'image_url', url: String(j.image_url ?? '').trim() } }; const link = String(j.link ?? '').trim(); if (link) body.link = link; return body; })()) }}",
+        "options": {}
+      },
+      "id": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+      "name": "API Pinterest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 180]
+    }
+  ],
+  "connections": {
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "Pin data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily schedule": {
+      "main": [
+        [
+          {
+            "node": "Pin data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pin data": {
+      "main": [
+        [
+          {
+            "node": "API Pinterest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

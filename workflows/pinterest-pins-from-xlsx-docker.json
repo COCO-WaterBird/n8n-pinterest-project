@@ -1,0 +1,157 @@
+{
+  "name": "Pinterest pins from local XLSX (Docker)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Local XLSX (Docker)\n\n1. Put `pins.xlsx` into the project **`sheet-data/`** folder on the host (mounted as **`/data`** in the container).\n2. Compose sets `N8N_RESTRICT_FILE_ACCESS_TO=/data`; without it, disk-read nodes are usually blocked.\n3. This workflow reads **`/data/pins.xlsx`** by default. If you change the path, update **Read pins.xlsx** > File(s) Selector.\n4. Header row should be: `board_id`, `title`, `description`, `alt`, `link`, `image_url`.\n5. In **Extract pin rows**, you can set Sheet Name (defaults to the first worksheet).\n6. Pinterest env vars (such as `PINTEREST_ACCESS_TOKEN`) are the same as the Google Sheet workflow.",
+        "height": 520,
+        "width": 560,
+        "color": 5
+      },
+      "id": "f1e2d3c4-b5a6-7890-fedc-ba9876543210",
+      "name": "README (sticky)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-800, -140]
+    },
+    {
+      "parameters": {},
+      "id": "10293847-5647-89ab-cdef-0123456789ab",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-420, 60]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "20394857-6475-89ab-cdef-123456789abc",
+      "name": "Daily schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-420, 260]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "/data/pins.xlsx",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "id": "31495968-7586-89ab-cdef-23456789abcd",
+      "name": "Read pins.xlsx",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [-100, 160]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "data",
+        "options": {
+          "headerRow": true
+        }
+      },
+      "id": "42506079-8697-89ab-cdef-3456789abcde",
+      "name": "Extract pin rows",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [160, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.PINTEREST_API_BASE || 'https://api-sandbox.pinterest.com') + '/v5/pins' }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.PINTEREST_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const j = $json; const body = { board_id: String(j.board_id ?? '').trim(), title: j.title ?? '', description: j.description ?? '', alt_text: j.alt ?? '', media_source: { source_type: 'image_url', url: String(j.image_url ?? '').trim() } }; const link = String(j.link ?? '').trim(); if (link) body.link = link; return body; })()) }}",
+        "options": {}
+      },
+      "id": "53617180-97a8-89ab-cdef-456789abcdef",
+      "name": "API Pinterest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 160]
+    }
+  ],
+  "connections": {
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "Read pins.xlsx",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily schedule": {
+      "main": [
+        [
+          {
+            "node": "Read pins.xlsx",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read pins.xlsx": {
+      "main": [
+        [
+          {
+            "node": "Extract pin rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract pin rows": {
+      "main": [
+        [
+          {
+            "node": "API Pinterest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

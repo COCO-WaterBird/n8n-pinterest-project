@@ -1,0 +1,6 @@
+.env
+.n8n/
+local-files/*
+!local-files/.gitkeep
+sheet-data/*.xlsx
+sheet-data/*.xls

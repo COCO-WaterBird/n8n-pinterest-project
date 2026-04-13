@@ -1,0 +1,16 @@
+{
+  "name": "n8n-pinterest-project",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "pinterest:login": "node scripts/pinterest-login.mjs",
+    "pinterest:demo": "node scripts/pinterest-demo-integration.mjs",
+    "pinterest:oauth-demo": "node scripts/pinterest-oauth-demo-server.mjs"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

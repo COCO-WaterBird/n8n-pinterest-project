@@ -1,0 +1,23 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - GENERIC_TIMEZONE=Asia/Shanghai
+      - PINTEREST_ACCESS_TOKEN=${PINTEREST_ACCESS_TOKEN}
+      - PINTEREST_API_BASE=${PINTEREST_API_BASE:-https://api-sandbox.pinterest.com}
+      # Allow "Read/Write Files from Disk" to access the mounted folder
+      # (the local XLSX workflow reads /data/pins.xlsx)
+      - N8N_RESTRICT_FILE_ACCESS_TO=/data
+      - N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false
+    env_file:
+      - .env
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./sheet-data:/data:ro
+
+volumes:
+  n8n_data:
